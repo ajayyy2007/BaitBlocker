@@ -1,0 +1,5 @@
+# Bait Blocker
+
+Android-based phishing detection project.
+
+Team: Progressive Pioneers
