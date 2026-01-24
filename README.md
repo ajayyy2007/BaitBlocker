@@ -1,4 +1,4 @@
-# Bait Blocker
+# BaitBlocker
 
 Android-based phishing detection project.
 
