@@ -1,39 +1,46 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { router } from 'expo-router';
 
-export default function HomeScreen() {
+
+export default function Dashboard() {
   return (
     <View style={styles.container}>
 
-      {/* Logo */}
-      <View style={styles.logoCircle}>
-  
-  {/* Stylized A */}
-  <Text style={styles.logoA}>A</Text>
+      {/* Header */}
+      <Text style={styles.header}>Bait Blocker</Text>
 
-  {/* This hides the middle bar of A */}
-  <View style={styles.hideBar}></View>
+      {/* Status Card */}
+      <View style={styles.statusCard}>
+        <Text style={styles.statusTitle}>Status</Text>
+        <Text style={styles.statusValue}>✅ You are Protected</Text>
+        <Text style={styles.statusSub}>
+          No phishing threats detected
+        </Text>
+      </View>
 
-</View>
+      {/* Scan Button */}
+       <TouchableOpacity
+  style={styles.scanButton}
+  onPress={() => router.push('/scan')}
+>
+  <Text style={styles.scanButtonText}>SCAN FOR SCAM</Text>
+</TouchableOpacity>
 
 
-      {/* Title */}
-      <Text style={styles.title}>Bait Blocker</Text>
 
-      {/* Subtitle */}
-      <Text style={styles.subtitle}>
-        AI‑Powered Phishing Detection System
-      </Text>
 
-      {/* Description */}
-      <Text style={styles.description}>
-        An intelligent Android application designed to detect and block phishing 
-        messages, protecting users from online fraud and malicious links.
-      </Text>
+      {/* Stats */}
+      <View style={styles.statsRow}>
+        <View style={styles.statBox}>
+          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statLabel}>Total Scans</Text>
+        </View>
 
-      {/* Tagline */}
-      <Text style={styles.tagline}>
-        Secure • Smart • Reliable
-      </Text>
+        <View style={styles.statBox}>
+          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statLabel}>Threats Blocked</Text>
+        </View>
+      </View>
 
     </View>
   );
@@ -43,61 +50,78 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 25,
+    padding: 24,
   },
 
-  logoCircle: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: '#1E90FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-
-  logoA: {
-  fontSize: 70,
-  fontWeight: 'bold',
-  color: '#ffffff',
-},
-
-hideBar: {
-  position: 'absolute',
-  width: 40,
-  height: 8,
-  backgroundColor: '#1E90FF', // same as circle color
-  top: 55,   // adjust if needed
-},
-
-
-  title: {
-    fontSize: 30,
+  header: {
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#0B0F1A',
-    marginBottom: 8,
-  },
-
-  subtitle: {
-    fontSize: 16,
-    color: '#555',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-
-  description: {
-    fontSize: 14,
-    color: '#777',
-    textAlign: 'center',
     marginBottom: 20,
-    lineHeight: 20,
   },
 
-  tagline: {
+  statusCard: {
+    backgroundColor: '#F2F8FF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 30,
+  },
+
+  statusTitle: {
     fontSize: 14,
-    color: '#1E90FF',
-    fontWeight: '600',
+    color: '#555',
+    marginBottom: 6,
+  },
+
+  statusValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0B0F1A',
+  },
+
+  statusSub: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 6,
+  },
+
+  scanButton: {
+    backgroundColor: '#FF8C00',
+    paddingVertical: 16,
+    borderRadius: 30,
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+
+  scanButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+
+  statBox: {
+    width: '48%',
+    backgroundColor: '#F9F9F9',
+    borderRadius: 14,
+    padding: 20,
+    alignItems: 'center',
+  },
+
+  statNumber: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#0B0F1A',
+  },
+
+  statLabel: {
+    fontSize: 13,
+    color: '#777',
+    marginTop: 6,
   },
 });

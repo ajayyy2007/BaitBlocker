@@ -1,6 +1,12 @@
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
+import { router } from 'expo-router';
 
 export default function ScanPage() {
+
+  // ✅ STATE to store user input
+  const [input, setInput] = useState('');
+
   return (
     <View style={styles.container}>
 
@@ -11,6 +17,8 @@ export default function ScanPage() {
           placeholder="Enter URL or Link"
           placeholderTextColor="#999"
           style={styles.input}
+          value={input}
+          onChangeText={setInput}
         />
         <TouchableOpacity style={styles.pasteBtn}>
           <Text style={styles.pasteText}>Paste</Text>
@@ -24,10 +32,12 @@ export default function ScanPage() {
           placeholder="Enter Message Text"
           placeholderTextColor="#999"
           style={styles.input}
+          value={input}
+          onChangeText={setInput}
         />
       </View>
 
-      {/* Image Upload */}
+      {/* Image Upload (UI only for now) */}
       <View style={styles.card}>
         <Text style={styles.icon}>📷</Text>
         <View>
@@ -37,9 +47,43 @@ export default function ScanPage() {
       </View>
 
       {/* Scan Button */}
-      <TouchableOpacity style={styles.scanBtn}>
-        <Text style={styles.scanText}>SCAN FOR SCAM</Text>
-      </TouchableOpacity>
+
+      <TouchableOpacity
+  style={styles.scanBtn}
+  onPress={async () => {
+    if (!input.trim()) {
+    alert('Please enter a message or URL to scan');
+    return;
+  }
+    try {
+      console.log('Scan pressed');
+      console.log('Input:', input);
+
+      const response = await fetch('http://10.1.2.219:5000/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input }),
+      });
+
+      console.log('Response received');
+
+      const data = await response.json();
+      console.log('Backend data:', data);
+
+      router.push({
+        pathname: '/result',
+        params: data,
+      });
+    } catch (error) {
+      console.log('ERROR:', error);
+      alert('Backend not reachable');
+    }
+  }}
+>
+  <Text style={styles.scanText}>SCAN FOR SCAM</Text>
+</TouchableOpacity>
+
+
 
     </View>
   );
