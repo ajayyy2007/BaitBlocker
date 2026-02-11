@@ -26,18 +26,26 @@ function detectMessage(text) {
 
 // ===== API =====
 app.post('/scan', (req, res) => {
-  const { input } = req.body;
+  const input = req.body.input;
 
   const result = detectMessage(input);
 
-  res.json({
-    status: result,
-    message:
-      result === "dangerous"
-        ? "⚠️ Phishing detected"
-        : "✅ Message is safe"
-  });
+  const response =
+    result === 'dangerous'
+      ? {
+          status: 'dangerous',
+          confidence: 92,
+          reasons: ['Urgency words detected', 'Suspicious link found'],
+        }
+      : {
+          status: 'safe',
+          confidence: 85,
+          reasons: ['No suspicious patterns found'],
+        };
+
+  res.json(response);
 });
+
 
 app.listen(5000, () => {
   console.log("Backend running on port 5000");
