@@ -2,41 +2,69 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 
 export default function ResultPage() {
-  const { status, confidence, reasons } = useLocalSearchParams();
+  const { status = 'safe', confidence = 80 } = useLocalSearchParams();
 
   const isDanger = status === 'dangerous';
 
   return (
     <View style={styles.container}>
 
-      {/* Status */}
-      <Text style={styles.icon}>{isDanger ? '🚨' : '✅'}</Text>
-      <Text style={[styles.title, { color: isDanger ? '#D35400' : '#2ECC71' }]}>
-        {isDanger ? 'Phishing Detected' : 'Message is Safe'}
+      {/* Title */}
+      <Text style={styles.title}>
+        {isDanger ? '⚠ Security Threat Detected' : '✅ No Threat Detected'}
       </Text>
 
-      {/* Confidence */}
+      <Text style={[styles.status, { color: isDanger ? '#E74C3C' : '#2ECC71' }]}>
+        {isDanger ? 'High Risk Message Identified' : 'Message Appears Safe'}
+      </Text>
+
+      {/* Confidence Card */}
       <View style={styles.card}>
-        <Text style={styles.label}>Confidence</Text>
+        <Text style={styles.label}>Confidence Score</Text>
         <Text style={styles.value}>{confidence}%</Text>
       </View>
 
-      {/* Reasons */}
+      {/* Analysis Card */}
       <View style={styles.card}>
-        <Text style={styles.label}>Analysis Report</Text>
-        {Array.isArray(reasons)
-          ? reasons.map((r, i) => (
-              <Text key={i} style={styles.reason}>• {r}</Text>
-            ))
-          : <Text style={styles.reason}>• {reasons}</Text>}
+        <Text style={styles.label}>Analysis Summary</Text>
+
+        {isDanger ? (
+          <>
+            <Text style={styles.point}>• Sensitive information request detected</Text>
+            <Text style={styles.point}>• Message shows scam-like patterns</Text>
+            <Text style={styles.point}>• Potential phishing / social engineering risk</Text>
+          </>
+        ) : (
+          <Text style={styles.point}>• No suspicious patterns detected</Text>
+        )}
       </View>
 
-      {/* Scan Time */}
-      <Text style={styles.time}>
-        Scanned at: {new Date().toLocaleTimeString()}
-      </Text>
+      {/* Recommended Action */}
+      <View style={styles.card}>
+        <Text style={styles.label}>Recommended Action</Text>
 
-      {/* Action */}
+        {isDanger ? (
+          <>
+            <Text style={styles.point}>• Do NOT respond or click links</Text>
+            <Text style={styles.point}>• Block & report sender if unknown</Text>
+            <Text style={styles.point}>• Never share OTP / PIN / Password</Text>
+          </>
+        ) : (
+          <Text style={styles.point}>• No immediate action required</Text>
+        )}
+      </View>
+
+      {/* Educational Note */}
+      {isDanger && (
+        <View style={styles.warningBox}>
+          <Text style={styles.warningText}>
+            💡 Scam messages often attempt to steal sensitive data like
+            passwords, OTPs, and ATM PINs. Always verify through official channels.
+          </Text>
+        </View>
+      )}
+
+      {/* Button */}
       <TouchableOpacity
         style={styles.button}
         onPress={() => router.replace('/scan')}
@@ -48,67 +76,76 @@ export default function ResultPage() {
   );
 }
 
+/* ================= STYLES ================= */
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0B0F1A',
     padding: 24,
-    alignItems: 'center',
     justifyContent: 'center',
   },
 
-  icon: {
-    fontSize: 48,
-    marginBottom: 10,
-  },
-
   title: {
+    color: 'white',
     fontSize: 22,
     fontWeight: 'bold',
+    marginBottom: 6,
+  },
+
+  status: {
+    fontSize: 16,
+    fontWeight: '600',
     marginBottom: 20,
   },
 
   card: {
-    width: '100%',
-    backgroundColor: '#F9F9F9',
-    borderRadius: 16,
+    backgroundColor: '#121826',
+    borderRadius: 14,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 12,
   },
 
   label: {
-    fontSize: 14,
-    color: '#777',
+    color: '#8892A6',
+    fontSize: 13,
     marginBottom: 6,
   },
 
   value: {
+    color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
   },
 
-  reason: {
+  point: {
+    color: 'white',
     fontSize: 14,
-    color: '#444',
     marginTop: 4,
   },
 
-  time: {
+  warningBox: {
+    backgroundColor: '#1C2833',
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+
+  warningText: {
+    color: '#F4D03F',
     fontSize: 12,
-    color: '#999',
-    marginVertical: 10,
   },
 
   button: {
-    marginTop: 20,
+    marginTop: 18,
     backgroundColor: '#FF8C00',
     paddingVertical: 14,
-    paddingHorizontal: 40,
     borderRadius: 30,
+    alignItems: 'center',
   },
 
   buttonText: {
-    color: '#FFF',
+    color: 'white',
     fontWeight: 'bold',
     fontSize: 15,
   },
