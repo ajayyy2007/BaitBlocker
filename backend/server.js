@@ -5,48 +5,37 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ===== KEYWORDS =====
-const URGENCY = ["urgent", "act now", "immediately", "verify"];
-const FINANCIAL = ["bank", "otp", "account", "payment"];
-const THREATS = ["blocked", "suspended", "locked"];
+/* ================= DETECTION LOGIC ================= */
 
-// ===== MESSAGE DETECTION =====
-function detectMessage(text) {
+function detectMessage(input) {
+  const text = input.toLowerCase();
   let score = 0;
-  const msg = text.toLowerCase();
 
-  URGENCY.forEach(w => msg.includes(w) && (score += 2));
-  FINANCIAL.forEach(w => msg.includes(w) && (score += 2));
-  THREATS.forEach(w => msg.includes(w) && (score += 2));
+  if (text.includes('pin')) score += 40;
+  if (text.includes('otp')) score += 40;
+  if (text.includes('password')) score += 40;
+  if (text.includes('cvv')) score += 40;
+  if (text.includes('atm')) score += 20;
 
-  if (msg.match(/http|www/)) score += 3;
-
-  return score >= 6 ? "dangerous" : "safe";
+  return score >= 40 ? 'dangerous' : 'safe';
 }
 
-// ===== API =====
+
+/* ================= API ROUTE ================= */
+
 app.post('/scan', (req, res) => {
-  const input = req.body.input;
+  console.log('🔥 FULL BODY:', req.body);
 
-  const result = detectMessage(input);
+  const result = detectMessage(req.body.input);
 
-  const response =
-    result === 'dangerous'
-      ? {
-          status: 'dangerous',
-          confidence: 92,
-          reasons: ['Urgency words detected', 'Suspicious link found'],
-        }
-      : {
-          status: 'safe',
-          confidence: 85,
-          reasons: ['No suspicious patterns found'],
-        };
-
-  res.json(response);
+  res.json({
+    status: result,
+    confidence: result === 'dangerous' ? 92 : 85,
+  });
 });
 
+/* ================= SERVER START ================= */
 
 app.listen(5000, () => {
-  console.log("Backend running on port 5000");
+  console.log('Backend running on port 5000');
 });
