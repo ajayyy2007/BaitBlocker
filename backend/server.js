@@ -14,8 +14,12 @@ function detectMessage(input) {
   if (text.includes('pin')) score += 40;
   if (text.includes('otp')) score += 40;
   if (text.includes('password')) score += 40;
-  if (text.includes('cvv')) score += 40;
-  if (text.includes('atm')) score += 20;
+
+  if (text.includes('urgent')) score += 15;
+  if (text.includes('login')) score += 15;
+
+  if (text.includes('http')) score += 10;
+  if (text.includes('bit.ly')) score += 30;
 
   return score >= 40 ? 'dangerous' : 'safe';
 }
