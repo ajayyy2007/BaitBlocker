@@ -49,45 +49,47 @@ export default function ScanPage() {
 
       {/* Scan Button */}
       <TouchableOpacity
-        style={styles.scanBtn}
-        onPress={async () => {
-        console.log('BUTTON WORKING');
+  style={styles.scanBtn}
+  onPress={async () => {
+    console.log('BUTTON WORKING');
 
-          // ✅ Decide what to scan
-          const finalInput = messageInput || urlInput;
+    // ✅ Decide what to scan
+    const finalInput = messageInput || urlInput;
 
-          // ✅ Validation
-          if (!finalInput.trim()) {
-            alert('Please enter a message or URL to scan');
-            return;
-          }
+    // ✅ Validation
+    if (!finalInput.trim()) {
+      alert('Please enter a message or URL to scan');
+      return;
+    }
 
-          try {
-            console.log('Scan pressed');
-            console.log('Input:', finalInput);
+    try {
+      console.log('Scan pressed');
+      console.log('Input:', finalInput);
 
-            const response = await fetch('http://localhost:5000/scan', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ input: finalInput }),
-            });
+      const response = await fetch('http://localhost:5000/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: finalInput }),
+      });
 
-            const data = await response.json();
-            console.log('Backend data:', data);
+      const data = await response.json();
+      console.log('Backend data:', data);
 
-            router.push({
-              pathname: '/result',
-              params: data,
-            });
+      // ✅ IMPORTANT CHANGE (passes input to result page)
+      router.push({
+        pathname: '/result',
+        params: { ...data, input: finalInput },
+      });
 
-          } catch (error) {
-            console.log('ERROR:', error);
-            alert('Backend not reachable');
-          }
-        }}
-      >
-        <Text style={styles.scanText}>SCAN FOR SCAM</Text>
-      </TouchableOpacity>
+    } catch (error) {
+      console.log('ERROR:', error);
+      alert('Backend not reachable');
+    }
+  }}
+>
+  <Text style={styles.scanText}>SCAN FOR SCAM</Text>
+</TouchableOpacity>
+
 
     </View>
   );
