@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["WhatsappListenerModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.whatsapplistener.WhatsappListenerModule"]
+  }
+}
