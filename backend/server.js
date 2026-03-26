@@ -1,265 +1,225 @@
-const express = require('express');
-const dotenv = require('dotenv');
-const cors = require('cors');
+const express = require("express");
+const cors = require("cors");
 const axios = require("axios");
-const translate = require('@vitalets/google-translate-api').default;
-const stringSimilarity = require('string-similarity');
-
-dotenv.config();
+const stringSimilarity = require("string-similarity");
 
 const app = express();
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
-/* ================= TRUSTED BRANDS ================= */
+const PORT = 5000;
 
-const trustedBrands = [
+/* ===============================
+   BRAND DATABASE
+================================ */
+
+const brands = [
   "amazon",
-  "paypal",
   "google",
-  "flipkart",
-  "instagram",
-  "telegram",
+  "microsoft",
+  "paypal",
+  "apple",
   "facebook",
-  "whatsapp",
-  "hdfcbank",
+  "instagram",
+  "netflix",
   "sbi",
-  "bankofindia"
+  "hdfc",
+  "icici",
+  "paytm",
+  "phonepe",
+  "flipkart",
+  "jio",
+  "airtel"
 ];
 
-/* ================= TRANSLATION FUNCTION ================= */
+/* ===============================
+   BRAND IMPERSONATION DETECTION
+================================ */
 
-async function translateToEnglish(text) {
-  try {
-    const result = await translate(text, { to: "en" });
-    return result.text;
-  } catch (error) {
-    console.log("Translation failed:", error.message);
-    return text;
-  }
-}
+function detectBrandImpersonation(url) {
 
-/* ================= IMPROVED DOMAIN EXTRACTION ================= */
+  if (!url) return null;
 
-function extractDomain(text) {
-  const urlRegex = /(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9\-]+\.[a-zA-Z]{2,})/;
-  const match = text.match(urlRegex);
+  const domain = url
+    .replace("https://", "")
+    .replace("http://", "")
+    .split("/")[0]
+    .toLowerCase();
 
-  if (match) {
-    return match[1].toLowerCase();
-  }
+  for (let brand of brands) {
 
-  return null;
-}
+    const similarity = stringSimilarity.compareTwoStrings(domain, brand);
 
-/* ================= DOMAIN NORMALIZATION ================= */
+    if (similarity > 0.6 && !domain.includes(`${brand}.com`)) {
 
-function normalizeDomain(domain) {
-  return domain
-    .replace(/0/g, "o")
-    .replace(/1/g, "l")
-    .replace(/5/g, "s");
-}
+      return {
+        impersonation: true,
+        brandDetected: brand,
+        similarityScore: similarity
+      };
 
-/* ================= BRAND IMPERSONATION DETECTION ================= */
-
-function detectBrandImpersonation(domain) {
-  if (!domain) return { isFake: false };
-
-  console.log("Extracted domain:", domain);
-
-  const mainPart = domain.split(".")[0];
-  const baseName = mainPart.split("-")[0];
-
-  const normalized = normalizeDomain(baseName);
-
-  console.log("Base name:", baseName);
-  console.log("Normalized:", normalized);
-
-  const matches = stringSimilarity.findBestMatch(
-    normalized,
-    trustedBrands
-  );
-
-  const bestMatch = matches.bestMatch;
-
-  console.log("Best match:", bestMatch);
-
-  // 🔥 KEY CHANGE HERE
-  if (
-    bestMatch.rating > 0.75 &&
-    baseName !== bestMatch.target   // compare ORIGINAL baseName
-  ) {
-    return {
-      isFake: true,
-      pretendingToBe: bestMatch.target,
-      similarityScore: bestMatch.rating
-    };
-  }
-
-  return { isFake: false };
-}
-
-/* ================= KEYWORD SCAM DETECTION ================= */
-
-function detectScam(text) {
-  const lowerText = text.toLowerCase();
-
-  const scamKeywords = [
-    "urgent",
-    "immediately",
-    "verify",
-    "bank",
-    "account suspended",
-    "otp",
-    "password",
-    "click here",
-    "limited time",
-    "investment opportunity",
-    "congratulations",
-    "suspended",
-    "closed permanently"
-  ];
-
-  let riskScore = 0;
-
-  scamKeywords.forEach(keyword => {
-    if (lowerText.includes(keyword)) {
-      riskScore += 20;
     }
-  });
-
-  const status = riskScore >= 40 ? "dangerous" : "safe";
+  }
 
   return {
-    status,
-    scamType: status === "dangerous" ? "Phishing / Scam" : "None",
-    emotionDetected:
-      lowerText.includes("urgent") || lowerText.includes("immediately")
-        ? "urgency"
-        : "none",
-    urgencyScore:
-      lowerText.includes("urgent") || lowerText.includes("immediately")
-        ? 80
-        : 20,
-    confidence: Math.min(riskScore + 30, 95),
-    explanation:
-      status === "dangerous"
-        ? "Message contains strong scam-related indicators."
-        : "No major scam indicators detected."
+    impersonation: false
   };
 }
 
-/* ================= MAIN SCAN ROUTE ================= */
+/* ===============================
+   URL EXTRACTION
+================================ */
 
-app.post("/scan", async (req, res) => {
-  console.log("🔥 /scan route hit 🔥");
+function extractURL(text) {
+  const match = text.match(/https?:\/\/[^\s]+/);
+  return match ? match[0] : null;
+}
 
+/* ===============================
+   REDIRECT TRACING
+================================ */
+
+async function traceRedirect(url) {
   try {
-    const { input } = req.body;
-    // 1️⃣ Ensure URL has protocol
-let urlToCheck = input;
+    const response = await axios.get(url, {
+      maxRedirects: 5,
+      timeout: 1000
+    });
 
-if (!urlToCheck.startsWith("http")) {
-  urlToCheck = "http://" + urlToCheck;
+    return [url, response.request?.res?.responseUrl || url];
+
+  } catch (err) {
+    return [url];
+  }
 }
 
-// 2️⃣ Trace redirects
-let redirectChain = [];
-if (extractDomain(input)) {
-  redirectChain = await traceRedirects(urlToCheck);
-}
+/* ===============================
+   DISTILBERT AI ANALYSIS
+================================ */
 
-console.log("Redirect chain:", redirectChain);
+async function analyzeWithAI(message) {
+  try {
 
-    // 1️⃣ Translate
-    const translatedText = await translateToEnglish(input);
+    const response = await axios.post(
+      "http://127.0.0.1:5001/analyze",
+      { text: message },
+      { timeout: 1500 }
+    );
 
-    console.log("Original:", input);
-    console.log("Translated:", translatedText);
-
-    // 2️⃣ Keyword detection
-    let result = detectScam(translatedText);
-
-    // 3️⃣ Brand impersonation detection
-    const domain = extractDomain(input);
-    const brandCheck = detectBrandImpersonation(domain);
-
-    console.log("Brand check result:", brandCheck);
-
-    // 4️⃣ Override if brand impersonation found
-    if (brandCheck.isFake) {
-      result = {
-        status: "dangerous",
-        scamType: "Brand Impersonation",
-        emotionDetected: "authority",
-        urgencyScore: 85,
-        confidence: 95,
-        explanation: `This domain is pretending to be ${brandCheck.pretendingToBe}.`
-      };
-    }
-
-    res.json({
-  originalMessage: input,
-  translatedMessage: translatedText,
-  brandImpersonation: brandCheck,
-  redirectChain: redirectChain,
-  ...result
-});
+    return response.data;
 
   } catch (error) {
-    console.error(error);
 
-    res.json({
-      status: "safe",
-      scamType: "Unknown",
-      emotionDetected: "none",
-      urgencyScore: 0,
-      confidence: 40,
-      explanation: "System error during scan."
-    });
+    console.log("AI error:", error.message);
+
+    return {
+      label: "UNKNOWN",
+      confidence: 0
+    };
   }
-});
-/* ================= traceRedirects ================= */
-async function traceRedirects(url) {
-  const redirectChain = [];
-  let currentUrl = url;
+}
+
+/* ===============================
+   SCAN ROUTE
+================================ */
+
+app.post("/scan", async (req, res) => {
+
+  console.log("🔥 /scan route hit 🔥");
+  console.log("Request received");
+
+  const { input, sensitivity } = req.body;
+  const message = input || "";
+
+  let isResponded = false;
+
+  const fallbackTimer = setTimeout(() => {
+    if (!isResponded) {
+      isResponded = true;
+      console.log("Sending response (timeout fallback)");
+      return res.json({ status: "safe", message: "Quick fallback result", fallback: true });
+    }
+  }, 2000);
 
   try {
-    for (let i = 0; i < 5; i++) { // max 5 redirects
-      redirectChain.push(currentUrl);
+    /* URL detection */
+    const url = extractURL(message);
 
-      const response = await axios.head(currentUrl, {
-        maxRedirects: 0, // DO NOT auto follow
-        validateStatus: null,
-        timeout: 5000
-      });
+    /* Brand detection */
+    const brandResult = detectBrandImpersonation(url);
 
-      if (
-        response.status >= 300 &&
-        response.status < 400 &&
-        response.headers.location
-      ) {
-        const nextUrl = new URL(response.headers.location, currentUrl).href;
-        currentUrl = nextUrl;
-      } else {
-        break;
+    let redirectChain = [];
+    let aiResult = { label: "UNKNOWN", confidence: 0 };
+
+    /* Concurrent Execution: Redirect trace & AI analysis */
+    const [redirects, aiResponse] = await Promise.all([
+      url ? traceRedirect(url) : Promise.resolve([]),
+      analyzeWithAI(message)
+    ]);
+
+    redirectChain = redirects;
+    aiResult = aiResponse;
+
+    console.log("AI Result:", aiResult);
+
+    /* Convert AI result & Evaluate Threat */
+    let status = "safe";
+    let threatType = "Safe";
+    let riskLevel = "low";
+    let recommendedAction = "No immediate action required";
+
+    if (brandResult && brandResult.impersonation) {
+      status = "dangerous";
+      threatType = "Brand Impersonation";
+      riskLevel = "high";
+      recommendedAction = `Do NOT click any links. This message impersonates ${brandResult.brandDetected}.`;
+    } else if (aiResult.label === "NEGATIVE") {
+      let threshold = 0.7; // MEDIUM
+      if (sensitivity === "low") threshold = 0.9;
+      if (sensitivity === "high") threshold = 0.5;
+
+      if (aiResult.confidence > threshold) {
+        status = "dangerous";
+        threatType = url ? "Phishing Link" : "Scam Message";
+        riskLevel = aiResult.confidence > 0.9 ? "high" : "medium";
+        recommendedAction = url 
+          ? "Do not click links or share personal information." 
+          : "Ignore and delete this message. It is likely a scam.";
       }
     }
 
-    return redirectChain;
+    if (!isResponded) {
+      clearTimeout(fallbackTimer);
+      isResponded = true;
+      console.log("Sending response");
+      return res.json({
+        status,
+        confidence: Math.round(aiResult.confidence * 100),
+        ai: aiResult,
+        detectedURL: url,
+        redirectChain,
+        brandResult,
+        threatType,
+        riskLevel,
+        recommendedAction
+      });
+    }
 
-  } catch (error) {
-    console.log("Redirect trace error:", error.message);
-    return redirectChain;
+  } catch (err) {
+    if (!isResponded) {
+      clearTimeout(fallbackTimer);
+      isResponded = true;
+      console.log("Sending response (error fallback)");
+      return res.json({ status: "safe", message: "Quick fallback result", fallback: true });
+    }
   }
-}
 
+});
 
+/* ===============================
+   SERVER START
+================================ */
 
-
-/* ================= START SERVER ================= */
-
-app.listen(5000, () => {
-  console.log("🚀 Server running on port 5000");
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Backend running on port ${PORT}`);
 });
